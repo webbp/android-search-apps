@@ -1,0 +1,138 @@
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:gravity="bottom"
+    android:layout_alignParentBottom="true"
+    android:orientation="vertical"
+    android:id="@+id/main"
+    android:background="#000000"
+    android:focusableInTouchMode="true"
+    >
+
+    <!--<LinearLayout-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="0dp"-->
+        <!--android:id="@+id/keyboardSpacer"-->
+        <!--android:gravity="bottom"-->
+        <!--android:layout_above="@+id/searchbarSpacer"-->
+        <!--android:visibility="gone"-->
+        <!--/>-->
+
+    <!--<LinearLayout-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="0dp"-->
+        <!--android:id="@+id/statusbarSpacer"-->
+        <!--android:gravity="bottom"-->
+        <!--android:layout_above="@+id/searchbarSpacer"-->
+        <!--android:visibility="gone"-->
+        <!--/>-->
+
+    <!--<LinearLayout-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="0dp"-->
+        <!--android:id="@+id/searchbarSpacer"-->
+        <!--android:gravity="bottom"-->
+        <!--android:layout_above="@+id/appsView"-->
+        <!--/>-->
+
+    <!--<LinearLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:id="@+id/padView"-->
+    <!--android:layout_above="@+id/scrollView"-->
+    <!--android:gravity="bottom"-->
+    <!--/>-->
+
+    <!--<ScrollView-->
+    <!--android:id="@+id/scrollView"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="match_parent"-->
+    <!--android:layout_weight="1"-->
+    <!--android:fillViewport="true" >-->
+
+    <!--<RelativeLayout-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="wrap_content" >-->
+
+    <com.webb.searchapps.GridViewNoTopFade
+        android:id="@+id/appsView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:columnWidth="@dimen/cell_size_tiny"
+        android:horizontalSpacing="1dp"
+        android:numColumns="auto_fit"
+        android:stretchMode="columnWidth"
+        android:verticalSpacing="10dp"
+        android:stackFromBottom="true"
+        android:gravity="bottom"
+        android:layout_above="@+id/searchContainer"
+        android:requiresFadingEdge="vertical"
+        android:scrollbars="none"
+        android:transcriptMode="alwaysScroll"
+        />
+    <!--</RelativeLayout>-->
+    <!--</ScrollView>-->
+
+    <!--</LinearLayout>-->
+
+    <!--<SearchView-->
+    <!--android:id="@+id/searchView"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="0dp"-->
+    <!--android:gravity="bottom"-->
+    <!--android:inputType="textAutoComplete"-->
+    <!--android:layout_above="@+id/editTextContainer"-->
+    <!--android:animateLayoutChanges="true"-->
+
+    <!--/>-->
+
+    <!--<webb.test2.ClearableEditText-->
+    <!--android:layout_alignParentBottom="true"-->
+    <!--android:layout_width="fill_parent"-->
+    <!--android:layout_height="wrap_content"-->
+    <!--android:id="@+id/clearableEditText"-->
+    <!--android:inputType="textNoSuggestions|textAutoComplete"-->
+    <!--android:drawableRight="android.widget.SearchView."-->
+    <!-->-->
+    <!--</webb.test2.ClearableEditText>-->
+    <RelativeLayout
+        android:id="@+id/searchContainer"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/search_height_tiny"
+        android:gravity="bottom"
+        android:layout_alignParentBottom="true"
+        >
+        <com.webb.searchapps.AppSearchView
+            android:id="@+id/appSearchView"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/search_height_tiny"
+            android:gravity="bottom"
+            android:layout_alignParentBottom="true"
+            android:inputType="textNoSuggestions|textAutoComplete"
+            android:singleLine="true"
+            android:cursorVisible="false"
+            />
+
+        <ImageView
+            android:id="@+id/close"
+            android:src="@drawable/ic_dialog_close_normal_holo"
+            android:layout_width="@dimen/search_height_tiny"
+            android:layout_height="@dimen/search_height_tiny"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:padding="4dp"
+            android:scaleType="fitCenter" />
+    </RelativeLayout>
+
+    <!--<LinearLayout-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="0dp"-->
+        <!--android:id="@+id/keyboardSpacerBottom"-->
+        <!--android:gravity="bottom"-->
+        <!--android:layout_alignParentBottom="true"-->
+        <!--/>-->
+
+</RelativeLayout>
