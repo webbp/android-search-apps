@@ -1,21 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.babybrain.searchapps" >
+	package="org.babybrain.searchapps"
+	android:versionCode="1"
+	android:versionName="1.0" >
 
-    <application
-        android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
-        android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
-        <activity
-            android:name=".SearchApps"
-            android:label="@string/app_name" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+	<uses-permission android:name="android.permission.VIBRATE"/>
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-    </application>
+	<uses-sdk
+		android:minSdkVersion="8"
+		android:targetSdkVersion="20" />
+
+	<application
+		android:debuggable="true"
+		android:allowBackup="true"
+		android:icon="@drawable/ic_menu_search_holo_dark"
+		android:label="@string/app_name"
+		android:theme="@style/AppTheme" >
+		<!--android:theme="@style/windowNoTitle" -->
+		<activity
+			android:name=".SearchApps"
+			android:label="@string/app_name"
+			android:screenOrientation="portrait"
+			android:configChanges="orientation"
+			android:windowSoftInputMode="stateUnchanged|stateVisible|adjustPan"
+			>
+			<!--android:windowSoftInputMode="stateHidden|adjustResize"-->
+			<!--android:launchMode="singleTop"-->
+			<!--android:clearTaskOnLaunch="true"-->
+			<!--android:stateNotNeeded="false"-->
+
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.LAUNCHER" />
+				<!--category android:name="android.intent.category.HOME" / -->
+				<!--category android:name="android.intent.category.DEFAULT" / -->
+			</intent-filter>
+		</activity>
+
+	</application>
 
 </manifest>
