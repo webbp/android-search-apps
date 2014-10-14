@@ -9,15 +9,10 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.graphics.drawable.PaintDrawable;
-import android.os.Bundle;
 import android.os.Vibrator;
+import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.GridView;
-import android.widget.LinearLayout;
 import android.widget.SearchView;
 
 import java.util.ArrayList;
@@ -40,7 +35,7 @@ public class Apps {
     private IntentFilter intentFilter;
 //    private LinearLayout bottomSpacer;
     private EditText keyboardAnchor;
-    public AppSearchView appSearchView;
+    public SearchText appSearchView;
 
     public Apps(Context c) {
         context = c;
@@ -62,7 +57,7 @@ public class Apps {
         br = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                Log.d("webb.appsearch.receiver", "br: " + intent.toString());
+//                Log.d("webb.appsearch.receiver", "br: " + intent.toString());
                 initializeAllAppsList();
                 resetMatchedApps();
             }
@@ -197,12 +192,47 @@ public class Apps {
         }
     };
 
-    public void sort(ArrayList<App> apps){
-        Collections.sort(apps);
+    public class TemporalDiscountingAppComparator implements Comparator<App> {
+        private final int now = (int)(System.currentTimeMillis() / 1000);
+        private static final double discountFactor = 0.1;
+        @Override
+        public int compare(App x, App y) {            
+            if(x.nLaunches ==0 || y.nLaunches ==0) return x.lastLaunch - y.lastLaunch;
+            // ...so safe to assume both have >0 nLaunches
+            int xInterval = now - x.lastLaunch;
+            int yInterval = now - y.lastLaunch;
+//            double xHypMeanInterval = x.meanInterval + (xInterval - x.meanInterval) / x.nLaunches;
+//            double yHypMeanInterval = y.meanInterval + (yInterval - y.meanInterval) / y.nLaunches;
+//            double xValue = 1/xHypMeanInterval;
+//            double yValue = 1/yHypMeanInterval;
+//            double xValueDiscounted = xValue/(1+discountFactor*xInterval);
+//            double yValueDiscounted = yValue/(1+discountFactor*yInterval);
+            double xValueDiscounted = x.nLaunches/(1+discountFactor*xInterval);
+            double yValueDiscounted = y.nLaunches/(1+discountFactor*yInterval);
+//            Log.d("webb", TextUtils.join(" ", new String[]{
+//                    x.lcLabel,
+//                    String.valueOf(x.nLaunches),
+//                    String.valueOf(xInterval),
+//                    String.valueOf(x.meanInterval),
+//                    String.valueOf(xHypMeanInterval),
+//                    String.valueOf(xValue),
+//                    String.valueOf(xValueDiscounted),
+//                    y.lcLabel,
+//                    String.valueOf(y.nLaunches),
+//                    String.valueOf(yInterval),
+//                    String.valueOf(y.meanInterval),
+//                    String.valueOf(yHypMeanInterval),
+//                    String.valueOf(yValue),
+//                    String.valueOf(yValueDiscounted),
+//            }));
+            if (xValueDiscounted > yValueDiscounted) return 1;
+            if (xValueDiscounted < yValueDiscounted) return -1;
+            return x.lastLaunch - y.lastLaunch; // rare
+        }
     }
 
     public void sort(){
-        Collections.sort(allApps);
+        Collections.sort(allApps, new TemporalDiscountingAppComparator());
     }
 
     public void saveAppLaunchData(SharedPreferences appLaunchData){
@@ -210,11 +240,14 @@ public class Apps {
         SharedPreferences.Editor editor = appLaunchData.edit();
         for(int i=0; i < allApps.size(); i++){
             app = allApps.get(i);
-            if(app.launchCount>0){
-                editor.putInt(app.lcLabel.concat(":launchCount"), app.launchCount);
+            if(app.nLaunches >0){
+                editor.putInt(app.lcLabel+":nLaunches", app.nLaunches);
             }
-            if(app.lastLaunch>0){
-                editor.putInt(app.lcLabel.concat(":lastLaunch"), app.lastLaunch);
+            if(app.lastLaunch >0){
+                editor.putInt(app.lcLabel+":lastLaunch", app.lastLaunch);
+            }
+            if(app.meanInterval >0){
+                editor.putFloat(app.lcLabel + ":meanInterval", (float) app.meanInterval);
             }
         }
         editor.commit();
@@ -225,17 +258,23 @@ public class Apps {
         if (appLaunchData != null) {
             App app;
             int result;
+            double result2;
             boolean restored = false;
             for(int i=0; i < allApps.size(); i++){
                 app = allApps.get(i);
-                result = appLaunchData.getInt(app.lcLabel.concat(":launchCount"),0);
+                result = appLaunchData.getInt(app.lcLabel+":nLaunches",0);
                 if(result>0){
-                    app.launchCount = result;
+                    app.nLaunches = result;
                     restored = true;
                 }
-                result = appLaunchData.getInt(app.lcLabel.concat(":lastLaunch"),0);
+                result = appLaunchData.getInt(app.lcLabel+":lastLaunch",0);
                 if(result>0){
                     app.lastLaunch = result;
+                    restored = true;
+                }
+                result2 = (double)appLaunchData.getFloat(app.lcLabel+":meanInterval",0);
+                if(result2>0){
+                    app.meanInterval = result;
                     restored = true;
                 }
             }
@@ -309,5 +348,4 @@ public class Apps {
         return ((pkgInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) ? true
                 : false;
     }
-
 }

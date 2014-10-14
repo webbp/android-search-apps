@@ -3,7 +3,10 @@
     android:layout_height="@dimen/cell_size_tiny"
     android:orientation="vertical"
     android:paddingTop="8dp"
-    android:paddingBottom="8dp">
+    android:paddingBottom="8dp"
+    >
+    <!--android:focusableInTouchMode="false"-->
+    <!--android:focusable="false"-->
 
     <ImageView
         android:id="@+id/icon_image"
