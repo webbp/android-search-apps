@@ -45,6 +45,13 @@ public class SearchAppsActivity extends Activity {
                 apps.launch(position);
             }
         });
+        appsView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View v, int position, long id) {
+                apps.info(position);
+                return true;
+            }
+        });
         apps.iconAdapter = iconAdapter;
         searchTextView = (SearchTextView) findViewById(R.id.appSearchView);
         searchTextView.main = main;

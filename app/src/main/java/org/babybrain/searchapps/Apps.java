@@ -94,6 +94,11 @@ public class Apps {
 //        Log.d("webb", String.valueOf(i) + " " + app.lcLabel);
     }
 
+    public void info(int i) {
+        App app = matchedApps.get(i);
+        app.startAppInfo();
+    }
+
     public void launchLast(){
         launch(size()-1);
     }
