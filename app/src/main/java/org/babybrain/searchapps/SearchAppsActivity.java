@@ -47,7 +47,7 @@ public class SearchAppsActivity extends Activity {
         });
         apps.iconAdapter = iconAdapter;
         searchTextView = (SearchTextView) findViewById(R.id.appSearchView);
-        searchTextView.main = (View)main;
+        searchTextView.main = main;
         searchTextView.apps = apps;
         searchTextView.appsView = appsView;
         searchTextView.w = getWindow();

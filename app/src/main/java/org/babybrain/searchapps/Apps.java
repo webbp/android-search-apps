@@ -84,9 +84,14 @@ public class Apps {
     }
 
     public void launch(int i){
-        matchedApps.get(i).launch();
-//        new android.os.Handler().postDelayed(resetView, 400);
-        Log.d("webb", String.valueOf(i) + " " + matchedApps.get(i).lcLabel);
+        App app = matchedApps.get(i);
+        if(!app.launch()){
+            //@todo remove(Object) is inefficient
+            allApps.remove(app);
+            matchedApps.remove(app);
+            updateView();
+        }
+//        Log.d("webb", String.valueOf(i) + " " + app.lcLabel);
     }
 
     public void launchLast(){

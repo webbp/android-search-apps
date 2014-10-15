@@ -15,7 +15,7 @@ public class App {
     public int nLaunches = 0;
     public int lastLaunch = 0;
     public double meanInterval = 0;
-    public boolean broken = false;
+//    public boolean broken = false;
     private Context context;
 
     public App(ResolveInfo ri, PackageManager pm, Context c){
@@ -33,7 +33,8 @@ public class App {
         try {
             context.startActivity(intent);
         } catch (Exception e){
-            broken = true;
+//            broken = true;
+//            Log.d("webb",lcLabel + " is broken");
             return false;
         }
         int now = (int)(System.currentTimeMillis() / 1000);
