@@ -12,6 +12,7 @@ import android.content.pm.ResolveInfo;
 import android.os.Vibrator;
 import android.util.Log;
 import android.widget.EditText;
+import android.widget.GridView;
 import android.widget.SearchView;
 
 import java.util.ArrayList;
@@ -22,7 +23,7 @@ import java.util.List;
 public class Apps {
     private ArrayList<App> allApps;
     private ArrayList<App> matchedApps;
-    private NoTopFadeGridView gridView;
+    private GridView gridView;
     private SearchView searchView;
     public IconAdapter iconAdapter;
     private Context context;
@@ -32,8 +33,6 @@ public class Apps {
     private Vibrator vibrator;
     private BroadcastReceiver br;
     private IntentFilter intentFilter;
-//    private LinearLayout bottomSpacer;
-    private EditText keyboardAnchor;
     public SearchTextView appSearchView;
 
     public Apps(Context c) {
@@ -87,6 +86,11 @@ public class Apps {
     public void launch(int i){
         matchedApps.get(i).launch();
 //        new android.os.Handler().postDelayed(resetView, 400);
+        Log.d("webb", String.valueOf(i) + " " + matchedApps.get(i).lcLabel);
+    }
+
+    public void launchLast(){
+        launch(size()-1);
     }
 
     public int size(){
@@ -300,20 +304,20 @@ public class Apps {
 
         switch(nMatchedApps){
             case 1:
-                Log.d("webb.appsearch", "1 match");
+//                Log.d("webb.appsearch", "1 match");
                 matchedApps = newMatchedApps;
                 updateView();
                 launch(0);
                 resetQuery();
                 return 1;
             case 0:
-                Log.d("webb.appsearch", "0 matches");
+//                Log.d("webb.appsearch", "0 matches");
 //                resetQuery(lastQuery); // doesn't work (e.g., try gz, then z)
                 resetQuery();
                 vibrator.vibrate(100);
                 return 0;
             default:
-                Log.d("webb.appsearch", ">1 matches");
+//                Log.d("webb.appsearch", ">1 matches");
                 matchedApps = newMatchedApps;
                 Collections.sort(matchedApps, new Comparator<App>() {
                     public int compare(App a1, App a2) {
