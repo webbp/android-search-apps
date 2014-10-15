@@ -41,9 +41,9 @@ public class App {
         if(nLaunches >1) {
             int interval = now - lastLaunch;
             meanInterval += (interval - meanInterval)/nLaunches;
-            Log.d("webb", String.valueOf(meanInterval));
+//            Log.d("webb", String.valueOf(meanInterval));
         }
-        Log.d("webb", String.valueOf(nLaunches));
+//        Log.d("webb", String.valueOf(nLaunches));
         lastLaunch = now;
         return true;
     }

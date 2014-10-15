@@ -57,7 +57,7 @@
     <!--android:layout_width="match_parent"-->
     <!--android:layout_height="wrap_content" >-->
 
-    <org.babybrain.searchapps.GridViewNoTopFade
+    <org.babybrain.searchapps.NoTopFadeGridView
         android:id="@+id/appsView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -109,7 +109,7 @@
         android:gravity="bottom"
         android:layout_alignParentBottom="true"
         >
-        <org.babybrain.searchapps.SearchText
+        <org.babybrain.searchapps.SearchTextView
             android:id="@+id/appSearchView"
             android:layout_width="match_parent"
             android:layout_height="@dimen/search_height_tiny"

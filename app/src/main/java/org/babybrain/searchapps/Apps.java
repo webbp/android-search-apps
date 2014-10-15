@@ -10,7 +10,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Vibrator;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.SearchView;
@@ -23,7 +22,7 @@ import java.util.List;
 public class Apps {
     private ArrayList<App> allApps;
     private ArrayList<App> matchedApps;
-    private GridViewNoTopFade gridView;
+    private NoTopFadeGridView gridView;
     private SearchView searchView;
     public IconAdapter iconAdapter;
     private Context context;
@@ -35,7 +34,7 @@ public class Apps {
     private IntentFilter intentFilter;
 //    private LinearLayout bottomSpacer;
     private EditText keyboardAnchor;
-    public SearchText appSearchView;
+    public SearchTextView appSearchView;
 
     public Apps(Context c) {
         context = c;

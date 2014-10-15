@@ -4,21 +4,21 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.widget.GridView;
 
-public class GridViewNoTopFade extends GridView {
+public class NoTopFadeGridView extends GridView {
 /*    @Override
     protected float getTopFadingEdgeStrength() {
         return 0.0f;
     }
 */
-    public GridViewNoTopFade(Context context) {
+    public NoTopFadeGridView(Context context) {
         super(context);
     }
 
-    public GridViewNoTopFade(Context context, AttributeSet attrs) {
+    public NoTopFadeGridView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
-    public GridViewNoTopFade(Context context, AttributeSet attrs, int defStyle) {
+    public NoTopFadeGridView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
 }
