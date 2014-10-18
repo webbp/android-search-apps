@@ -90,7 +90,7 @@ public class SearchAppsActivity extends Activity {
 
     @Override
     protected void onResume(){
-        Log.d("webb", "onResume");
+//        Log.d("webb", "onResume");
         super.onResume();
         apps.updateAllAppsList();
         searchTextView.clearFocus();
@@ -100,7 +100,7 @@ public class SearchAppsActivity extends Activity {
 
     @Override
     public void onPause() {
-        Log.d("webb", "onPause");
+//        Log.d("webb", "onPause");
         super.onPause();
 //        Log.d("webb", String.valueOf(searchText.hasFocus()));
         searchTextView.hadFocus = searchTextView.hasFocus();
