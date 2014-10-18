@@ -9,7 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 public class IconAdapter extends BaseAdapter {
-    private Context mContext;
+    private Context context;
     private Apps apps;
     private LayoutInflater inflater;
     private ImageView imageView;
@@ -17,9 +17,9 @@ public class IconAdapter extends BaseAdapter {
     private App app;
 
     public IconAdapter(Context c, Apps a) {
-        mContext = c;
+        context = c;
         apps = a;
-        inflater = (LayoutInflater) mContext.getSystemService( Context.LAYOUT_INFLATER_SERVICE );
+        inflater = (LayoutInflater) context.getSystemService( Context.LAYOUT_INFLATER_SERVICE );
     }
 
     public int getCount() {
@@ -37,6 +37,7 @@ public class IconAdapter extends BaseAdapter {
     public View getView(int position, View view, ViewGroup parent) {
         if(view == null){
             view = inflater.inflate(R.layout.icon, null);
+//            view = inflater.inflate(R.layout.icon, parent, false); // no labels for some reason
         }
         app = apps.get(position);
         imageView = (ImageView)view.findViewById(R.id.icon_image);

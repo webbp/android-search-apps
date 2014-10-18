@@ -3,10 +3,14 @@ package org.babybrain.searchapps;
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -62,34 +66,47 @@ public class SearchAppsActivity extends Activity {
         searchTextView.x = (ImageView) findViewById(R.id.close);
         searchTextView.x.setOnTouchListener(searchTextView.closeTouchListener);
 //        searchText.x.setOnClickListener(searchText.closeClickListener); // slower than setOnTouchListener; don't use
-        apps.appSearchView = searchTextView;
-        searchTextView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        apps.searchTextView = searchTextView;
+//        searchTextView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+//            @Override
+//            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+//                if (actionId == EditorInfo.IME_ACTION_DONE) {
+//                    searchTextView.onDoneClick();
+//                }
+//                return false;
+//            }
+//        });
+        searchTextView.addTextChangedListener(new TextWatcher() {
             @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    searchTextView.onDoneClick();
-                }
-                return false;
+            public void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+                if(apps.query(text, start, lengthBefore, lengthAfter) == 0) searchTextView.clear();
             }
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i2, int i3) {}
+            @Override
+            public void afterTextChanged(Editable editable) {}
         });
     }
 
     @Override
     protected void onResume(){
+        Log.d("webb", "onResume");
         super.onResume();
-//        Log.d("webb","onResume");
+        apps.updateAllAppsList();
         searchTextView.clearFocus();
-        apps.resetView.run();
+//        apps.resetView.run();
         if(searchTextView.hadFocus) searchTextView.requestFocus();
     }
 
     @Override
     public void onPause() {
+        Log.d("webb", "onPause");
         super.onPause();
-//        Log.d("webb","onPause");
 //        Log.d("webb", String.valueOf(searchText.hasFocus()));
         searchTextView.hadFocus = searchTextView.hasFocus();
         searchTextView.clear();
+//        apps.sort();
+//        iconAdapter.notifyDataSetChanged();
     }
 
     @Override

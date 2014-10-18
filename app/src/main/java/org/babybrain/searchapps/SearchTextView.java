@@ -58,39 +58,6 @@ public class SearchTextView extends EditText {
         imm.hideSoftInputFromWindow(getWindowToken(), 0);
     }
 
-    @Override
-    protected void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
-        if(text == null || text.length() == 0){
-            if(lastQuery == null || lastQuery.length() == 0) return;
-            else post(resetView);
-        }
-        else{
-
-            query = text.toString().toLowerCase();
-
-            if(lastQuery != null && lastQuery.length() == 0 || query.contains(lastQuery)){
-//                Log.d("webb.appsearch", "add: " + lastQuery + " -> " + query);
-                int result = apps.onQueryTextAdd(query);
-                if(result == 0){
-                    clear();
-                }
-            }
-            else if(query.equals(lastQuery)){
-//                Log.d("webb.appsearch", "3 " + lastQuery + " " + query);
-                return;
-            }
-            else {
-//                Log.d("webb.appsearch", "delete/replace: " + lastQuery + " -> " + query);
-                apps.resetMatchedApps();
-                int result = apps.onQueryTextAdd(query);
-                if(result == 0){
-                    clear();
-                }
-            }
-        }
-        lastQuery = query;
-    }
-
     public void clear(){
         setText("");
     }

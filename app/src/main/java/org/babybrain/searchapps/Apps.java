@@ -3,47 +3,44 @@ package org.babybrain.searchapps;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Vibrator;
-import android.util.Log;
-import android.widget.EditText;
-import android.widget.GridView;
 import android.widget.SearchView;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 
 public class Apps {
+    private HashSet<String> allAppsHashes;
     private ArrayList<App> allApps;
     private ArrayList<App> matchedApps;
-    private GridView gridView;
-    private SearchView searchView;
+//    private HashSet<String> allAppsHashSet;
     public IconAdapter iconAdapter;
     private Context context;
-    private String query = "";
-    private String lastQuery = "";
     public SearchView.OnQueryTextListener queryListener;
     private Vibrator vibrator;
     private BroadcastReceiver br;
-    private IntentFilter intentFilter;
-    public SearchTextView appSearchView;
+//    private IntentFilter intentFilter;
+    public SearchTextView searchTextView;
+    protected PackageManager pm;
+    Intent mainIntent = new Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER);
 
     public Apps(Context c) {
         context = c;
-//        keyboardAnchor = k;
-        vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+        pm = context.getPackageManager();
         initializeAllAppsList();
+        vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+//        keyboardAnchor = k;
 //        initializeAppsSearch();
 //        initializePackageChangeReceiver();
     }
 
+/*
     public void initializePackageChangeReceiver(){
         intentFilter = new IntentFilter();
         intentFilter.addAction(Intent.ACTION_INSTALL_PACKAGE);
@@ -62,21 +59,57 @@ public class Apps {
         };
         context.registerReceiver(br, intentFilter);
     }
+*/
+
+    protected void add(ResolveInfo ri, PackageManager pm, Context c, String u){
+        allApps.add(new App(ri, pm, c, u));
+        allAppsHashes.add(u);
+    }
+
+    protected void remove(App app) {
+        allAppsHashes.remove(app.uniqueName);
+        allApps.remove(app); // slow... could try another method
+    }
+
+    protected void remove(String u, int i) {
+        allAppsHashes.remove(u);
+        allApps.remove(i);
+    }
 
     // make list of all apps using sparser data structure for faster parsing and launching
-    private void initializeAllAppsList(){
-        PackageManager pm = context.getPackageManager();
-        allApps = new ArrayList<App>();
-        for (ResolveInfo ri : getResolveInfoList(pm)) {
-            allApps.add(new App(ri, pm, context));
+    public void initializeAllAppsList(){
+        List<ResolveInfo> resolveInfoList = pm.queryIntentActivities(mainIntent, 0);
+        int size = resolveInfoList.size();
+        allApps = new ArrayList<App>(size);
+        allAppsHashes = new HashSet<String>(size);
+        for (ResolveInfo ri : resolveInfoList) {
+            String uniqueName = ri.activityInfo.packageName + ":" + ri.activityInfo.name;
+            add(ri, pm, context, uniqueName);
         }
     }
 
-    // get list of all apps' ResolveInfo
-    private List<ResolveInfo> getResolveInfoList(PackageManager pm){
-        Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
-        mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        return pm.queryIntentActivities(mainIntent, 0);
+    public void updateAllAppsList(){
+        List<ResolveInfo> resolveInfoList = pm.queryIntentActivities(mainIntent, 0);
+        HashSet<String> missingAppsHashes = new HashSet<String>(allAppsHashes);
+        boolean changes = false;
+        for (ResolveInfo ri : resolveInfoList) {
+            String uniqueName = ri.activityInfo.packageName + ":" + ri.activityInfo.name;
+            missingAppsHashes.remove(uniqueName);
+            if(allAppsHashes.contains(uniqueName)) continue;
+            // new app!
+            add(ri, pm, context, uniqueName);
+            changes = true;
+        }
+        for(int i=0; i < allApps.size(); i++) {
+            String uniqueName = allApps.get(i).uniqueName;
+            if(!missingAppsHashes.contains(uniqueName)) continue;
+            // missing (uninstalled) app!
+            remove(uniqueName, i);
+            changes = true;
+        }
+        if(changes){
+            resetView.run();
+        }
     }
 
     public App get(int i){
@@ -85,18 +118,18 @@ public class Apps {
 
     public void launch(int i){
         App app = matchedApps.get(i);
-        if(!app.launch()){
-            //@todo remove(Object) is inefficient
-            allApps.remove(app);
-            matchedApps.remove(app);
-            updateView();
-        }
+        //@todo handle uninstalling apps more betterer
+        if(app.launch()) return;
+
+        // missing app!
+        remove(app);
+        matchedApps.remove(i);
+        updateView();
 //        Log.d("webb", String.valueOf(i) + " " + app.lcLabel);
     }
 
     public void info(int i) {
-        App app = matchedApps.get(i);
-        app.startAppInfo();
+        matchedApps.get(i).startAppInfo();
     }
 
     public void launchLast(){
@@ -182,7 +215,7 @@ public class Apps {
 //    }
 
     public void resetQuery(){
-        appSearchView.clear();
+        searchTextView.clear();
     }
 
     public void resetQuery(String newQuery){
@@ -298,20 +331,26 @@ public class Apps {
         resetMatchedApps();
     }
 
-    public int onQueryTextAdd(String q){
-        App app;
-        int nMatchedApps = 0;
-        ArrayList<App> newMatchedApps = new ArrayList<App>(matchedApps.size());
-        query = q.toLowerCase();
+    public int query(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+        if (lengthAfter == 0) {
+            resetMatchedApps();
+            updateView();
+            return size();
+        }
+        if (lengthAfter < lengthBefore) resetMatchedApps();
+        return filter(text.toString().toLowerCase(), start, lengthBefore,lengthAfter);
+    }
 
+    public int filter(String lclabel, int start, int lengthBefore, final int lengthAfter){
+        int nMatchedApps = 0;
+        ArrayList<App> newMatchedApps = new ArrayList<App>(matchedApps.size()/2); // decent guess
         for(int i=0; i < matchedApps.size(); i++){
-            app = matchedApps.get(i);
-            if(app.matches(query)){
+            App app = matchedApps.get(i);
+            if(app.matches(lclabel)){
                 newMatchedApps.add(app);
                 nMatchedApps++;
             }
         }
-
         switch(nMatchedApps){
             case 1:
 //                Log.d("webb.appsearch", "1 match");
@@ -323,28 +362,36 @@ public class Apps {
             case 0:
 //                Log.d("webb.appsearch", "0 matches");
 //                resetQuery(lastQuery); // doesn't work (e.g., try gz, then z)
-                resetQuery();
                 vibrator.vibrate(100);
+                resetQuery();
                 return 0;
             default:
 //                Log.d("webb.appsearch", ">1 matches");
                 matchedApps = newMatchedApps;
-                Collections.sort(matchedApps, new Comparator<App>() {
-                    public int compare(App a1, App a2) {
-                        String l1 = a1.lcLabel;
-                        String l2 = a2.lcLabel;
-                        int maxComparisons = Math.min(query.length(), Math.min(l1.length(), l2.length()));
-                        for (int i = 0; i < maxComparisons; i++) {
-                            if (l1.charAt(i) == query.charAt(i) && l2.charAt(i) != query.charAt(i))
-                                return 1;
-                            else if (l1.charAt(i) != query.charAt(i) && l2.charAt(i) == query.charAt(i))
-                                return -1;
-                        }
-                        return 0;
-                    }
-                });
+                Collections.sort(matchedApps, new InitialStringComparator(lclabel));
                 updateView();
-                return newMatchedApps.size();
+                return nMatchedApps;
+        }
+    }
+
+    private class InitialStringComparator implements Comparator<App>{
+        private String lclabel;
+        public InitialStringComparator(String l){
+            lclabel = l;
+        }
+        @Override
+        public int compare(App a1, App a2) {
+            String l1 = a1.lcLabel;
+            String l2 = a2.lcLabel;
+            int maxComparisons = Math.min(Math.min(l1.length(), l2.length()), lclabel.length());
+            for (int i = 0; i < maxComparisons; i++) {
+                char c = lclabel.charAt(i);
+                char c1 = l1.charAt(i);
+                char c2 = l2.charAt(i);
+                if(c == c1 && c != c2) return 1;
+                if(c == c2 && c != c1) return -1;
+            }
+            return 0;
         }
     }
 
@@ -357,8 +404,8 @@ public class Apps {
      * @param pkgInfo
      * @return
      */
-    private boolean isSystemPackage(PackageInfo pkgInfo) {
-        return ((pkgInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) ? true
-                : false;
-    }
+//    private boolean isSystemPackage(PackageInfo pkgInfo) {
+//        return ((pkgInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) ? true
+//                : false;
+//    }
 }
