@@ -1,13 +1,15 @@
 package org.babybrain.searchapps;
 
-import android.content.BroadcastReceiver;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Vibrator;
-import android.widget.SearchView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,15 +21,12 @@ public class Apps {
     private HashSet<String> allAppsHashes;
     private ArrayList<App> allApps;
     private ArrayList<App> matchedApps;
-//    private HashSet<String> allAppsHashSet;
     public IconAdapter iconAdapter;
     private Context context;
-    public SearchView.OnQueryTextListener queryListener;
     private Vibrator vibrator;
-    private BroadcastReceiver br;
-//    private IntentFilter intentFilter;
+    //    private IntentFilter intentFilter;
     public SearchTextView searchTextView;
-    protected PackageManager pm;
+    private PackageManager pm;
     Intent mainIntent = new Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER);
 
     public Apps(Context c) {
@@ -35,40 +34,11 @@ public class Apps {
         pm = context.getPackageManager();
         initializeAllAppsList();
         vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
-//        keyboardAnchor = k;
-//        initializeAppsSearch();
-//        initializePackageChangeReceiver();
     }
 
-/*
-    public void initializePackageChangeReceiver(){
-        intentFilter = new IntentFilter();
-        intentFilter.addAction(Intent.ACTION_INSTALL_PACKAGE);
-        intentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
-        intentFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
-        intentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
-        intentFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
-        intentFilter.addDataScheme("package");
-        br = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-//                Log.d("webb.appsearch.receiver", "br: " + intent.toString());
-                initializeAllAppsList();
-                resetMatchedApps();
-            }
-        };
-        context.registerReceiver(br, intentFilter);
-    }
-*/
-
-    protected void add(ResolveInfo ri, PackageManager pm, Context c, String u){
+    protected void add(ResolveInfo ri, PackageManager pm, Context c, String u) {
         allApps.add(new App(ri, pm, c, u));
         allAppsHashes.add(u);
-    }
-
-    protected void remove(App app) {
-        allAppsHashes.remove(app.uniqueName);
-        allApps.remove(app); // slow... could try another method
     }
 
     protected void remove(String u, int i) {
@@ -76,40 +46,62 @@ public class Apps {
         allApps.remove(i);
     }
 
+    protected void remove(App app, int i) {
+        allAppsHashes.remove(app.uniqueName);
+        matchedApps.remove(i);
+        allApps.remove(app); // slow... could try another method
+    }
+
     // make list of all apps using sparser data structure for faster parsing and launching
-    public void initializeAllAppsList(){
+    public void initializeAllAppsList() {
         List<ResolveInfo> resolveInfoList = pm.queryIntentActivities(mainIntent, 0);
         int size = resolveInfoList.size();
         allApps = new ArrayList<App>(size);
         allAppsHashes = new HashSet<String>(size);
         for (ResolveInfo ri : resolveInfoList) {
             String uniqueName = ri.activityInfo.packageName + ":" + ri.activityInfo.name;
+            Log.d("webb", "init: new app " + uniqueName);
             add(ri, pm, context, uniqueName);
         }
     }
 
-    public void updateAllAppsList(){
-        List<ResolveInfo> resolveInfoList = pm.queryIntentActivities(mainIntent, 0);
-        HashSet<String> missingAppsHashes = new HashSet<String>(allAppsHashes);
-        boolean changes = false;
-        for (ResolveInfo ri : resolveInfoList) {
-            String uniqueName = ri.activityInfo.packageName + ":" + ri.activityInfo.name;
-            missingAppsHashes.remove(uniqueName);
-            if(allAppsHashes.contains(uniqueName)) continue;
-            // new app!
-            add(ri, pm, context, uniqueName);
-            changes = true;
+    private Runnable updateAllAppsListRunnable = new Runnable() {
+        @Override
+        public void run() {
+            List<ResolveInfo> resolveInfoList = pm.queryIntentActivities(mainIntent, 0);
+            HashSet<String> missingAppsHashes = new HashSet<String>(allAppsHashes);
+            boolean changes = false;
+            for (ResolveInfo ri : resolveInfoList) {
+                String uniqueName = ri.activityInfo.packageName + ":" + ri.activityInfo.name;
+                missingAppsHashes.remove(uniqueName);
+                if (allAppsHashes.contains(uniqueName)) continue;
+                Log.d("webb", "update: new app " + uniqueName);
+                // new app!
+                add(ri, pm, context, uniqueName);
+                changes = true;
+            }
+            for (int i = 0; i < allApps.size() && missingAppsHashes.size() > 0; i++) {
+                String uniqueName = allApps.get(i).uniqueName;
+                if (!missingAppsHashes.contains(uniqueName)) continue;
+                // missing (uninstalled) app!
+                Log.d("webb", "update: missing app " + uniqueName);
+                remove(uniqueName, i);
+                changes = true;
+            }
+            if (changes) {
+                sort();
+                resetMatchedApps();
+                ((Activity)context).runOnUiThread(new Runnable() { // http://stackoverflow.com/a/5162096/1563960 + http://stackoverflow.com/a/13086422/1563960
+                    @Override
+                    public void run() {
+                        updateView();
+                    }
+                });
+            }
         }
-        for(int i=0; i < allApps.size(); i++) {
-            String uniqueName = allApps.get(i).uniqueName;
-            if(!missingAppsHashes.contains(uniqueName)) continue;
-            // missing (uninstalled) app!
-            remove(uniqueName, i);
-            changes = true;
-        }
-        if(changes){
-            resetView.run();
-        }
+    };
+    public void updateAllAppsList() {
+        new Thread(updateAllAppsListRunnable).start();
     }
 
     public App get(int i){
@@ -122,17 +114,16 @@ public class Apps {
         if(app.launch()) return;
 
         // missing app!
-        remove(app);
-        matchedApps.remove(i);
+        remove(app, i);
         updateView();
 //        Log.d("webb", String.valueOf(i) + " " + app.lcLabel);
     }
 
     public void info(int i) {
-        matchedApps.get(i).startAppInfo();
+        matchedApps.get(i).info();
     }
 
-    public void launchLast(){
+    public void launchBestGuess(){
         launch(size()-1);
     }
 
@@ -223,20 +214,13 @@ public class Apps {
     }
 
     public void resetMatchedApps(){
-        matchedApps = (ArrayList<App>) allApps.clone();
+//        matchedApps = (ArrayList<App>) allApps.clone();
+        matchedApps = allApps;
     }
 
     public void updateView(){
         iconAdapter.notifyDataSetChanged();
     }
-
-    public Runnable resetView = new Runnable() {
-        public void run() {
-            sort();
-            resetMatchedApps();
-            updateView();
-        }
-    };
 
     public class TemporalDiscountingAppComparator implements Comparator<App> {
         private final int now = (int)(System.currentTimeMillis() / 1000);
@@ -282,19 +266,11 @@ public class Apps {
     }
 
     public void saveAppLaunchData(SharedPreferences appLaunchData){
-        App app;
         SharedPreferences.Editor editor = appLaunchData.edit();
-        for(int i=0; i < allApps.size(); i++){
-            app = allApps.get(i);
-            if(app.nLaunches >0){
-                editor.putInt(app.lcLabel+":nLaunches", app.nLaunches);
-            }
-            if(app.lastLaunch >0){
-                editor.putInt(app.lcLabel+":lastLaunch", app.lastLaunch);
-            }
-            if(app.meanInterval >0){
-                editor.putFloat(app.lcLabel + ":meanInterval", (float) app.meanInterval);
-            }
+        for(App app : allApps){
+            if(app.nLaunches>0) editor.putInt(app.lcLabel+":nLaunches", app.nLaunches);
+            if(app.lastLaunch>0) editor.putInt(app.lcLabel+":lastLaunch", app.lastLaunch);
+            if(app.meanInterval>0) editor.putFloat(app.lcLabel + ":meanInterval", (float) app.meanInterval);
         }
         editor.commit();
     }
@@ -331,61 +307,81 @@ public class Apps {
         resetMatchedApps();
     }
 
-    public int query(CharSequence text, int start, int lengthBefore, int lengthAfter) {
-        if (lengthAfter == 0) {
+    public TextWatcher queryListener = new TextWatcher() {
+        @Override
+        public void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
+            if(query(text, start, lengthBefore, lengthAfter) == 0) searchTextView.clear();
+        }
+        @Override
+        public void beforeTextChanged(CharSequence charSequence, int i, int i2, int i3) {}
+        @Override
+        public void afterTextChanged(Editable editable) {}
+    };
+
+    public int query(CharSequence query, int start, int lengthBefore, int lengthAfter) {
+        if(lengthAfter == 0) {
             resetMatchedApps();
             updateView();
             return size();
         }
-        if (lengthAfter < lengthBefore) resetMatchedApps();
-        return filter(text.toString().toLowerCase(), start, lengthBefore,lengthAfter);
+        if(lengthAfter < lengthBefore) resetMatchedApps();
+        return filter(query.toString().toLowerCase(), start, lengthBefore, lengthAfter);
     }
 
-    public int filter(String lclabel, int start, int lengthBefore, final int lengthAfter){
-        int nMatchedApps = 0;
-        ArrayList<App> newMatchedApps = new ArrayList<App>(matchedApps.size()/2); // decent guess
-        for(int i=0; i < matchedApps.size(); i++){
-            App app = matchedApps.get(i);
-            if(app.matches(lclabel)){
-                newMatchedApps.add(app);
-                nMatchedApps++;
+    public int filter(String query, int start, int lengthBefore, final int lengthAfter){
+        // find the array indices of apps with lowercase labels matching query
+        int nMatches=0,
+                nPrevMatches=size(),
+                matchIndices[] = new int[nPrevMatches];
+        for(int i=0; i<nPrevMatches; i++){
+            App app = get(i);
+            if(app.matches(query)){
+                matchIndices[nMatches] = i;
+                nMatches++;
             }
         }
-        switch(nMatchedApps){
-            case 1:
-//                Log.d("webb.appsearch", "1 match");
-                matchedApps = newMatchedApps;
-                updateView();
-                launch(0);
-                resetQuery();
-                return 1;
-            case 0:
-//                Log.d("webb.appsearch", "0 matches");
-//                resetQuery(lastQuery); // doesn't work (e.g., try gz, then z)
-                vibrator.vibrate(100);
-                resetQuery();
-                return 0;
-            default:
-//                Log.d("webb.appsearch", ">1 matches");
-                matchedApps = newMatchedApps;
-                Collections.sort(matchedApps, new InitialStringComparator(lclabel));
-                updateView();
-                return nMatchedApps;
+        // if no change in set of matches and return
+        if(nMatches==nPrevMatches) return nMatches;
+        // if there are 0 matches, reset the query and return
+        if(nMatches==0){
+//            Log.d("webb.appsearch", "0 matches");
+            vibrator.vibrate(100);
+            resetQuery();
+            return 0;
         }
+        // use the matched app indices to create the new matched app data structure
+        ArrayList<App> newMatchedApps = new ArrayList<App>(nMatches);
+        for(int i=0; i < nMatches; i++){
+            newMatchedApps.add(matchedApps.get(matchIndices[i]));
+        }
+        // replace the old matched app data with the new
+        matchedApps = newMatchedApps;
+        // if there's one match, launch it
+        if(nMatches==1) {
+//            Log.d("webb.appsearch", "1 match");
+            launch(0);
+            resetQuery();
+        } else { // else if multiple matches, sor
+//        Log.d("webb.appsearch", ">1 matches");
+            appLabelInitialStringToQueryComparator.setQuery(query);
+            Collections.sort(matchedApps, appLabelInitialStringToQueryComparator);
+            updateView();
+        }
+        updateView();
+        return nMatches;
     }
 
-    private class InitialStringComparator implements Comparator<App>{
-        private String lclabel;
-        public InitialStringComparator(String l){
-            lclabel = l;
-        }
+    private AppLabelInitialStringToQueryComparator appLabelInitialStringToQueryComparator = new AppLabelInitialStringToQueryComparator();
+    private class AppLabelInitialStringToQueryComparator implements Comparator<App>{
+        private String query;
+        public void setQuery(String q){query = q;}
         @Override
         public int compare(App a1, App a2) {
             String l1 = a1.lcLabel;
             String l2 = a2.lcLabel;
-            int maxComparisons = Math.min(Math.min(l1.length(), l2.length()), lclabel.length());
+            int maxComparisons = Math.min(Math.min(l1.length(), l2.length()), query.length());
             for (int i = 0; i < maxComparisons; i++) {
-                char c = lclabel.charAt(i);
+                char c = query.charAt(i);
                 char c1 = l1.charAt(i);
                 char c2 = l2.charAt(i);
                 if(c == c1 && c != c2) return 1;
