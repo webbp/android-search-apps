@@ -31,7 +31,7 @@ public class SearchAppsActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         main = (RelativeLayout) findViewById(R.id.main);
-        apps = new Apps(this);
+        apps = new Apps(this, main);
 //        if (savedInstanceState != null) {
 //            apps.restoreAppsLaunchData(savedInstanceState);
 //        }

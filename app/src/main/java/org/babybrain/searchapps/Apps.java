@@ -10,6 +10,7 @@ import android.os.Vibrator;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,14 +24,16 @@ public class Apps {
     private ArrayList<App> matchedApps;
     public IconAdapter iconAdapter;
     private Context context;
+    public View main;
     private Vibrator vibrator;
     //    private IntentFilter intentFilter;
     public SearchTextView searchTextView;
     private PackageManager pm;
     Intent mainIntent = new Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER);
 
-    public Apps(Context c) {
+    public Apps(Context c, View m) {
         context = c;
+        main = m;
         pm = context.getPackageManager();
         initializeAllAppsList();
         vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
@@ -111,7 +114,10 @@ public class Apps {
     public void launch(int i){
         App app = matchedApps.get(i);
         //@todo handle uninstalling apps more betterer
-        if(app.launch()) return;
+        if(app.launch()){
+            main.postDelayed(onLaunch, 300); // prepare for next time, in the background, after a 300 ms delay
+            return;
+        }
 
         // missing app!
         remove(app, i);
@@ -134,6 +140,16 @@ public class Apps {
     public void resetQuery(){
         searchTextView.clear();
     }
+
+    public Runnable onLaunch = new Runnable() {
+        @Override
+        public void run() {
+            sort();
+            resetQuery();
+            resetMatchedApps();
+            updateView();
+        }
+    };
 
     public void resetMatchedApps(){
         matchedApps = allApps;
@@ -231,7 +247,7 @@ public class Apps {
     public TextWatcher queryListener = new TextWatcher() {
         @Override
         public void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
-            if(query(text, start, lengthBefore, lengthAfter) == 0) searchTextView.clear();
+            query(text, lengthBefore, lengthAfter);
         }
         @Override
         public void beforeTextChanged(CharSequence charSequence, int i, int i2, int i3) {}
@@ -239,17 +255,17 @@ public class Apps {
         public void afterTextChanged(Editable editable) {}
     };
 
-    public int query(CharSequence query, int start, int lengthBefore, int lengthAfter) {
+    public void query(CharSequence query, int lengthBefore, int lengthAfter) {
         if(lengthAfter == 0) {
             resetMatchedApps();
             updateView();
-            return size();
+            return;
         }
         if(lengthAfter < lengthBefore) resetMatchedApps();
-        return filter(query.toString().toLowerCase(), start, lengthBefore, lengthAfter);
+        filter(query.toString().toLowerCase());
     }
 
-    public int filter(String query, int start, int lengthBefore, final int lengthAfter){
+    public void filter(String query){
         // find the array indices of apps with lowercase labels matching query
         int nMatches=0,
                 nPrevMatches=size(),
@@ -262,13 +278,13 @@ public class Apps {
             }
         }
         // if no change in set of matches and return
-        if(nMatches==nPrevMatches) return nMatches;
+        if(nMatches==nPrevMatches) return;
         // if there are 0 matches, reset the query and return
         if(nMatches==0){
 //            Log.d("webb.appsearch", "0 matches");
             vibrator.vibrate(100);
             resetQuery();
-            return 0;
+            return;
         }
         // use the matched app indices to create the new matched app data structure
         ArrayList<App> newMatchedApps = new ArrayList<App>(nMatches);
@@ -281,15 +297,12 @@ public class Apps {
         if(nMatches==1) {
 //            Log.d("webb.appsearch", "1 match");
             launch(0);
-            resetQuery();
         } else { // else if multiple matches, sor
 //        Log.d("webb.appsearch", ">1 matches");
             appLabelInitialStringToQueryComparator.setQuery(query);
             Collections.sort(matchedApps, appLabelInitialStringToQueryComparator);
-            updateView();
         }
         updateView();
-        return nMatches;
     }
 
     private AppLabelInitialStringToQueryComparator appLabelInitialStringToQueryComparator = new AppLabelInitialStringToQueryComparator();
