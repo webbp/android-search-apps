@@ -131,90 +131,11 @@ public class Apps {
         return matchedApps.size();
     }
 
-//    private void initializeAppsSearch(){
-//        queryListener = new SearchView.OnQueryTextListener(){
-//            @Override
-//            public boolean onQueryTextChange(String query){
-//                Log.d("webb.appsearch", "onQuery: " + lastQuery + " -> " + query);
-//                if(query.length() == 0){
-//                    Log.d("webb.appsearch", "empty: " + lastQuery + " -> " + query);
-//                    if(lastQuery.length() > 0) resetView();
-//                }
-//                else if(lastQuery.length() == 0 || query.contains(lastQuery)){
-//                    Log.d("webb.appsearch", "add: " + lastQuery + " -> " + query);
-//                    onQueryTextAdd(query);
-//                }
-////                else if(query.equals(lastQuery)){
-////                    Log.d("webb.appsearch", "3 " + lastQuery + " " + query);
-////                    return true;
-////                }
-//                else {
-//                    Log.d("webb.appsearch", "delete/replace: " + lastQuery + " -> " + query);
-//                    resetMatchedApps();
-//                    onQueryTextAdd(query);
-//                }
-//                return true;
-//            }
-//
-//            @Override
-//            public boolean onQueryTextSubmit(String query){
-//                if(query.length() == 0){
-//                    // hide keyboard
-////            Context c = getApplicationContext)(;)
-////            InputMethodManager imm = (InputMethodManager)getSystemService(
-////                    Context.INPUT_METHOD_SERVICE);
-////            imm.hideSoftInputFromWindow(myEditText.getWindowToken(), 0);
-//                }
-//                else {
-//                    // launch highest-sorted app
-//                    launch(size()-1);
-//                }
-//                return true;
-//            }
-//        };
-//
-//        searchView.setOnCloseListener(new SearchView.OnCloseListener(){
-//            @Override
-//            public boolean onClose() {
-//                Log.d("webb.appsearch", "searchView.closeListener");
-//                if(searchView.getQuery().length() == 0){
-////                    Log.d("webb.appsearch", "clearFocus");
-//                    searchView.clearFocus();
-////                    bottomSpacer.setVisibility(LinearLayout.GONE);
-//                    return true;
-//                }
-//                else {
-//                    resetQuery();
-//                    return true;
-//                }
-//            }
-//        });
-//
-//        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
-//            @Override
-//            public void onFocusChange(View v, boolean hasFocus) {
-//                Log.d("webb.appsearch", "searchview.focusChange");
-//                if (hasFocus) {
-//                    Log.d("webb.appsearch", "searchView.hasFocus");
-////                    bottomSpacer.setVisibility(LinearLayout.VISIBLE);
-////                    InputMethodManager imm = (InputMethodManager)context.getSystemService(Context.INPUT_METHOD_SERVICE);
-////                    imm.showSoftInputFromInputMethod(searchView.getWindowToken(), InputMethodManager.SHOW_IMPLICIT);
-//                }
-//            }
-//        });
-//
-//    }
-
     public void resetQuery(){
         searchTextView.clear();
     }
 
-    public void resetQuery(String newQuery){
-//        searchView.setQuery((CharSequence) newQuery, false);
-    }
-
     public void resetMatchedApps(){
-//        matchedApps = (ArrayList<App>) allApps.clone();
         matchedApps = allApps;
     }
 

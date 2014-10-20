@@ -1,17 +1,14 @@
 package org.babybrain.searchapps;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.app.Activity;
 import android.content.SharedPreferences;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
-import android.widget.EditText;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -30,7 +27,7 @@ public class SearchAppsActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d("webb","onCreate");
+//        Log.d("webb","onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
         main = (RelativeLayout) findViewById(R.id.main);
@@ -59,16 +56,16 @@ public class SearchAppsActivity extends Activity {
         });
         apps.iconAdapter = iconAdapter;
         searchTextView = (SearchTextView) findViewById(R.id.appSearchView);
+        searchTextView.mainActivity = this;
         searchTextView.x = (ImageView) findViewById(R.id.close);
-//        searchTextView.x.setOnTouchListener(searchTextView.closeTouchListener);
-        searchTextView.x.setOnClickListener(searchTextView.closeClickListener); // slower than setOnTouchListener; don't use
+        searchTextView.x.setOnClickListener(searchTextView.xClickListener); // slower than setOnTouchListener; don't use
         apps.searchTextView = searchTextView;
         searchTextView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE) {
                     // if there's a query, launch the first app, else close the field
-                    if(searchTextView.length() > 0){
+                    if (searchTextView.length() > 0) {
                         apps.launchBestGuess();
                     } else {
                         searchTextView.close();
@@ -78,38 +75,33 @@ public class SearchAppsActivity extends Activity {
             }
         });
         searchTextView.addTextChangedListener(apps.queryListener);
+        searchTextView.requestFocus();
     }
 
     @Override
     protected void onRestart(){
+//        Log.d("webb", "onRestart");
         super.onRestart();
-        Log.d("webb", "onRestart");
     }
 
     @Override
     protected void onResume(){
-        Log.d("webb", "onResume");
+//        Log.d("webb", "onResume, keyboardWasVisible:"+String.valueOf(searchTextView.keyboardWasVisible));
         super.onResume();
+        searchTextView.onResume();
         apps.updateAllAppsList();
-        if(searchTextView.hadFocus) searchTextView.requestFocus();
-        else searchTextView.clearFocus();
     }
 
     @Override
     public void onPause() {
-        Log.d("webb", "onPause");
+//        Log.d("webb", "onPause");
         super.onPause();
-//        Log.d("webb", String.valueOf(searchText.hasFocus()));
-        searchTextView.hadFocus = searchTextView.hasFocus();
-//        searchTextView.clear();
-//        apps.sort();
-//        iconAdapter.notifyDataSetChanged();
     }
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-        Log.d("webb","onSaveInstanceState");
-        apps.saveAppLaunchData(appLaunchData);
+//        Log.d("webb", "onSaveInstanceState");
         super.onSaveInstanceState(savedInstanceState);
+        apps.saveAppLaunchData(appLaunchData);
     }
 }
