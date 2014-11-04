@@ -1,16 +1,21 @@
 package org.babybrain.searchapps;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Vibrator;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,54 +23,138 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 
-public class Apps {
-    private HashSet<String> allAppsHashes;
-    private ArrayList<App> allApps;
-    private ArrayList<App> matchedApps;
-    public IconAdapter iconAdapter;
+public class Apps extends BaseAdapter {
+    private HashSet<String> allAppsHashes = new HashSet<String>(0);
+    private ArrayList<App> allApps = new ArrayList<App>(0);
+    private ArrayList<App> matchedApps = new ArrayList<App>(0);;
     private Context context;
-    public View main;
     private Vibrator vibrator;
-    //    private IntentFilter intentFilter;
     public SearchTextView searchTextView;
     private PackageManager pm;
     Intent mainIntent = new Intent(Intent.ACTION_MAIN, null).addCategory(Intent.CATEGORY_LAUNCHER);
+    SharedPreferences launchData;
+    SharedPreferences.Editor launchDataEditor;
+    public int resumeTime;
+    private boolean needsSort = true;
+    private LayoutInflater inflater;
+    private ImageView imageView;
+    private TextView textView;
+    private BroadcastReceiver br;
+    private IntentFilter appsChangedIntentFilter;
+    private boolean isAppsChangedReceiverRegistered = false;
 
-    public Apps(Context c, View m) {
+    public Apps(Context c) {
         context = c;
-        main = m;
         pm = context.getPackageManager();
-        initializeAllAppsList();
+        launchData = context.getSharedPreferences("launchData", 0);
+        launchDataEditor = launchData.edit();
+        inflater = LayoutInflater.from(context);
+        initAllAppsList();
         vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+        initAppsChangedReceiver();
     }
 
-    protected void add(ResolveInfo ri, PackageManager pm, Context c, String u) {
-        allApps.add(new App(ri, pm, c, u));
-        allAppsHashes.add(u);
+    private void initAppsChangedReceiver() {
+        br = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                updateAllAppsList();
+            }
+        };
+        appsChangedIntentFilter = new IntentFilter();
+        appsChangedIntentFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        appsChangedIntentFilter.addAction(Intent.ACTION_PACKAGE_INSTALL);
+        appsChangedIntentFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        appsChangedIntentFilter.addDataScheme("package");
+        registerAppsChangedReceiver();
     }
 
-    protected void remove(String u, int i) {
-        allAppsHashes.remove(u);
+    public void registerAppsChangedReceiver(){
+        if(!isAppsChangedReceiverRegistered){
+            isAppsChangedReceiverRegistered = true;
+            context.registerReceiver(br, appsChangedIntentFilter);
+//            Log.d("webb", "registerAppsChangedReceiver");
+        }
+    }
+
+    private void unregisterAppsChangedReceiver(){
+        if(isAppsChangedReceiverRegistered){
+            isAppsChangedReceiverRegistered = false;
+            context.unregisterReceiver(br);
+//            Log.d("webb", "unregisterAppsChangedReceiver");
+        }
+    }
+
+    public boolean hasStableIds() {
+        return false;
+    }
+
+    public int getCount() {
+        return size();
+    }
+
+    public Object getItem(int position) {
+        return get(position);
+    }
+
+    public long getItemId(int position) {
+//        Log.d("webb", "getItemId "+String.valueOf(apps.size())+": "+String.valueOf(position)+": "+apps.get(position).lcLabel);
+        return position;
+    }
+
+    public View getView(int position, View view, ViewGroup parent) {
+//        Log.d("webb", "getView "+String.valueOf(apps.size())+": "+String.valueOf(position)+": "+apps.get(position).lcLabel);
+        if(view == null){
+            view = inflater.inflate(R.layout.icon, null); //, parent, false);
+        }
+        App app = get(position);
+        imageView = (ImageView)view.findViewById(R.id.icon_image);
+        imageView.setImageDrawable(app.icon);
+        textView = (TextView)view.findViewById(R.id.icon_text);
+        textView.setText(app.label);
+        return view;
+    }
+
+    // main app add function
+    private void add(ResolveInfo ri, String uniqueName) {
+        App app = new App(ri, pm, context, uniqueName);
+        restoreLaunchData(app);
+        allApps.add(app);
+        allAppsHashes.add(uniqueName);
+    }
+
+    // convenience wrapper
+    private void add(ResolveInfo ri) {
+        String uniqueName = ri.activityInfo.packageName + ":" + ri.activityInfo.name;
+        add(ri, uniqueName);
+    }
+
+    protected void remove(int i, String uniqueName) {
         allApps.remove(i);
+        allAppsHashes.remove(uniqueName);
     }
 
-    protected void remove(App app, int i) {
-        allAppsHashes.remove(app.uniqueName);
+    protected void removeMatchedApp(int i, App app) {
         matchedApps.remove(i);
-        allApps.remove(app); // slow... could try another method
+        updateView();
+        allApps.remove(app); // slow, but infrequent
+        allAppsHashes.remove(app.uniqueName);
     }
 
     // make list of all apps using sparser data structure for faster parsing and launching
-    public void initializeAllAppsList() {
+    private void initAllAppsList() {
+//        Log.d("webb", "initAllAppsList");
         List<ResolveInfo> resolveInfoList = pm.queryIntentActivities(mainIntent, 0);
         int size = resolveInfoList.size();
         allApps = new ArrayList<App>(size);
         allAppsHashes = new HashSet<String>(size);
         for (ResolveInfo ri : resolveInfoList) {
-            String uniqueName = ri.activityInfo.packageName + ":" + ri.activityInfo.name;
-            Log.d("webb", "init: new app " + uniqueName);
-            add(ri, pm, context, uniqueName);
+//            Log.d("webb", "init: new app " + ri.activityInfo.packageName + ":" + ri.activityInfo.name);
+            add(ri);
         }
+        sort();
+        resetMatchedApps();
+        updateView();
     }
 
     private Runnable updateAllAppsListRunnable = new Runnable() {
@@ -78,33 +167,43 @@ public class Apps {
                 String uniqueName = ri.activityInfo.packageName + ":" + ri.activityInfo.name;
                 missingAppsHashes.remove(uniqueName);
                 if (allAppsHashes.contains(uniqueName)) continue;
-                Log.d("webb", "update: new app " + uniqueName);
+//                Log.d("webb", "update: new app " + uniqueName);
                 // new app!
-                add(ri, pm, context, uniqueName);
+                add(ri, uniqueName);
                 changes = true;
             }
             for (int i = 0; i < allApps.size() && missingAppsHashes.size() > 0; i++) {
                 String uniqueName = allApps.get(i).uniqueName;
                 if (!missingAppsHashes.contains(uniqueName)) continue;
                 // missing (uninstalled) app!
-                Log.d("webb", "update: missing app " + uniqueName);
-                remove(uniqueName, i);
+//                Log.d("webb", "update: missing app " + uniqueName);
+                remove(i, uniqueName);
                 changes = true;
             }
-            if (changes) {
+            if(changes) {
+                needsSort = true;
                 sort();
                 resetMatchedApps();
-                ((Activity)context).runOnUiThread(new Runnable() { // http://stackoverflow.com/a/5162096/1563960 + http://stackoverflow.com/a/13086422/1563960
-                    @Override
-                    public void run() {
-                        updateView();
-                    }
-                });
+                updateViewOnUIThread();
             }
+            registerAppsChangedReceiver();
         }
     };
     public void updateAllAppsList() {
+//        Log.d("webb", "updateAllAppsList");
         new Thread(updateAllAppsListRunnable).start();
+    }
+
+    private Runnable updateViewRunnable = new Runnable() {
+        @Override
+        public void run() {
+            updateView();
+        }
+    };
+
+    // http://stackoverflow.com/a/5162096/1563960 + http://stackoverflow.com/a/13086422/1563960
+    private void updateViewOnUIThread(){
+        ((Activity)context).runOnUiThread(updateViewRunnable);
     }
 
     public App get(int i){
@@ -112,17 +211,19 @@ public class Apps {
     }
 
     public void launch(int i){
-        App app = matchedApps.get(i);
-        //@todo handle uninstalling apps more betterer
-        if(app.launch()){
-            main.postDelayed(onLaunch, 300); // prepare for next time, in the background, after a 300 ms delay
-            return;
-        }
-
-        // missing app!
-        remove(app, i);
-        updateView();
 //        Log.d("webb", String.valueOf(i) + " " + app.lcLabel);
+        App app = matchedApps.get(i);
+        boolean launched = app.launch();
+        needsSort = true;
+        saveLaunchData(app);
+        // missing app!
+        if(!launched) removeMatchedApp(i, app);
+    }
+
+    private void saveLaunchData(App app){
+        launchDataEditor.putInt(app.lcLabel+":nLaunches", app.nLaunches);
+        launchDataEditor.putInt(app.lcLabel+":lastLaunch", app.lastLaunch);
+        launchDataEditor.putFloat(app.lcLabel + ":meanInterval", (float) app.meanInterval);
     }
 
     public void info(int i) {
@@ -141,27 +242,25 @@ public class Apps {
         searchTextView.clear();
     }
 
-    public Runnable onLaunch = new Runnable() {
-        @Override
-        public void run() {
-            sort();
-            resetQuery();
-            resetMatchedApps();
-            updateView();
-        }
-    };
+    public void onStop(){
+        unregisterAppsChangedReceiver();
+        sort();
+        updateView();
+        searchTextView.close();
+    }
 
     public void resetMatchedApps(){
         matchedApps = allApps;
     }
 
     public void updateView(){
-        iconAdapter.notifyDataSetChanged();
+//        adapter.notifyDataSetChanged();
+        notifyDataSetChanged();
     }
 
     public class TemporalDiscountingAppComparator implements Comparator<App> {
-        private final int now = (int)(System.currentTimeMillis() / 1000);
-        private static final double discountFactor = 0.1;
+        private int now = resumeTime;
+        private double discountFactor = 0.1;
         @Override
         public int compare(App x, App y) {            
             if(x.nLaunches ==0 || y.nLaunches ==0) return x.lastLaunch - y.lastLaunch;
@@ -199,61 +298,31 @@ public class Apps {
     }
 
     public void sort(){
-        Collections.sort(allApps, new TemporalDiscountingAppComparator());
+        if(needsSort){
+            Collections.sort(allApps, new TemporalDiscountingAppComparator());
+            needsSort = false;
+        }
     }
 
-    public void saveAppLaunchData(SharedPreferences appLaunchData){
-        SharedPreferences.Editor editor = appLaunchData.edit();
-        for(App app : allApps){
-            if(app.nLaunches>0) editor.putInt(app.lcLabel+":nLaunches", app.nLaunches);
-            if(app.lastLaunch>0) editor.putInt(app.lcLabel+":lastLaunch", app.lastLaunch);
-            if(app.meanInterval>0) editor.putFloat(app.lcLabel + ":meanInterval", (float) app.meanInterval);
+    private void restoreLaunchData(App app){
+        boolean restored = false;
+        int nLaunches = launchData.getInt(app.lcLabel+":nLaunches",0);
+        if(nLaunches>0){
+            app.nLaunches = nLaunches;
+            restored = true;
         }
-        editor.commit();
+        int lastLaunch = launchData.getInt(app.lcLabel+":lastLaunch",0);
+        if(lastLaunch>0){
+            app.lastLaunch = lastLaunch;
+            restored = true;
+        }
+        double meanInterval = (double) launchData.getFloat(app.lcLabel+":meanInterval",0);
+        if(meanInterval>0){
+            app.meanInterval = meanInterval;
+            restored = true;
+        }
+        if(restored) needsSort = true;
     }
-
-//    public void restoreAppsLaunchData(Bundle savedInstanceState){
-    public void restoreAppLaunchData(SharedPreferences appLaunchData){
-        if (appLaunchData != null) {
-            App app;
-            int result;
-            double result2;
-            boolean restored = false;
-            for(int i=0; i < allApps.size(); i++){
-                app = allApps.get(i);
-                result = appLaunchData.getInt(app.lcLabel+":nLaunches",0);
-                if(result>0){
-                    app.nLaunches = result;
-                    restored = true;
-                }
-                result = appLaunchData.getInt(app.lcLabel+":lastLaunch",0);
-                if(result>0){
-                    app.lastLaunch = result;
-                    restored = true;
-                }
-                result2 = (double)appLaunchData.getFloat(app.lcLabel+":meanInterval",0);
-                if(result2>0){
-                    app.meanInterval = result;
-                    restored = true;
-                }
-            }
-            if(restored){
-                sort();
-            }
-        }
-        resetMatchedApps();
-    }
-
-    public TextWatcher queryListener = new TextWatcher() {
-        @Override
-        public void onTextChanged(CharSequence text, int start, int lengthBefore, int lengthAfter) {
-            query(text, lengthBefore, lengthAfter);
-        }
-        @Override
-        public void beforeTextChanged(CharSequence charSequence, int i, int i2, int i3) {}
-        @Override
-        public void afterTextChanged(Editable editable) {}
-    };
 
     public void query(CharSequence query, int lengthBefore, int lengthAfter) {
         if(lengthAfter == 0) {
@@ -277,7 +346,7 @@ public class Apps {
                 nMatches++;
             }
         }
-        // if no change in set of matches and return
+        // if no change in set of matches, return
         if(nMatches==nPrevMatches) return;
         // if there are 0 matches, reset the query and return
         if(nMatches==0){

@@ -69,9 +69,12 @@
         android:gravity="bottom"
         android:layout_above="@+id/searchContainer"
         android:requiresFadingEdge="vertical"
-        android:scrollbars="none"
+        android:scrollbars="vertical"
+        android:fastScrollEnabled="true"
+        android:scrollingCache="true"
         android:transcriptMode="alwaysScroll"
         android:drawSelectorOnTop="false"
+        android:textFilterEnabled="true"
         />
     <!--android:descendantFocusability="blocksDescendants"-->
 

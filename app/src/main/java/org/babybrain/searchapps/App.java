@@ -11,7 +11,7 @@ import android.provider.Settings;
 
 public class App {
     private Intent launchIntent;
-    private Intent appInfoIntent;
+    private Intent infoIntent;
     public Drawable icon;
     public CharSequence label;
     public String lcLabel;
@@ -23,6 +23,7 @@ public class App {
 
     public App(ResolveInfo ri, PackageManager pm, Context c, String u){
         context = c;
+
         launchIntent = new Intent();
         launchIntent.setClassName(ri.activityInfo.packageName, ri.activityInfo.name); // required to differentiate e.g., Camera from Gallery
         launchIntent.setAction("android.intent.action.MAIN"); // possibly useless
@@ -30,11 +31,14 @@ public class App {
         icon = ri.loadIcon(pm);
         label = ri.loadLabel(pm);
         lcLabel = label.toString().toLowerCase();
-        appInfoIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-        appInfoIntent.setData(Uri.parse("package:" + ri.activityInfo.packageName));
-        appInfoIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // required to start as new, separate task
         uniqueName = u;
-//        appInfoIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        infoIntent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        infoIntent.setData(Uri.parse("package:" + ri.activityInfo.packageName));
+        infoIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // required to start as new, separate task
+        infoIntent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+        infoIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        infoIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
     }
 
     public boolean launch(){
@@ -58,7 +62,7 @@ public class App {
 
     public boolean info(){
         try {
-            context.startActivity(appInfoIntent);
+            context.startActivity(infoIntent);
             return true;
         } catch (Exception e){
 //            Log.d("webb",lcLabel + " is broken");
