@@ -51,7 +51,7 @@ public class SearchAppsActivity extends Activity {
         searchTextView.mainActivity = this;
         searchTextView.x = (ImageView) findViewById(R.id.close);
         apps.searchTextView = searchTextView;
-        searchTextView.x.setOnClickListener(searchTextView.xClickListener); // slower than setOnTouchListener; don't use
+        searchTextView.x.setOnClickListener(searchTextView.xClickListener);
         searchTextView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
