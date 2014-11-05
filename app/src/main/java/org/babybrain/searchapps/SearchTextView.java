@@ -46,6 +46,7 @@ public class SearchTextView extends EditText {
     public void close(){
         clear();
         clearFocus();
+        hideKeyboard();
     }
 
     public View.OnClickListener xClickListener = new View.OnClickListener() {

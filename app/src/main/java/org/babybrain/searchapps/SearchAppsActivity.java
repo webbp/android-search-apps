@@ -87,6 +87,7 @@ public class SearchAppsActivity extends Activity {
         super.onRestart();
         apps.resumeTime = (int)(System.currentTimeMillis() / 1000);
         apps.updateAllAppsList();
+        searchTextView.close();
     }
 
     @Override

@@ -42,6 +42,8 @@ public class Apps extends BaseAdapter {
     private BroadcastReceiver br;
     private IntentFilter appsChangedIntentFilter;
     private boolean isAppsChangedReceiverRegistered = false;
+    int allAppsSize = 0;
+    int matchedAppsSize = 0;
 
     public Apps(Context c) {
         context = c;
@@ -90,7 +92,7 @@ public class Apps extends BaseAdapter {
     }
 
     public int getCount() {
-        return size();
+        return matchedAppsSize;
     }
 
     public Object getItem(int position) {
@@ -120,6 +122,7 @@ public class Apps extends BaseAdapter {
         App app = new App(ri, pm, context, uniqueName);
         restoreLaunchData(app);
         allApps.add(app);
+        allAppsSize++;
         allAppsHashes.add(uniqueName);
     }
 
@@ -132,12 +135,15 @@ public class Apps extends BaseAdapter {
     protected void remove(int i, String uniqueName) {
         allApps.remove(i);
         allAppsHashes.remove(uniqueName);
+        allAppsSize--;
     }
 
     protected void removeMatchedApp(int i, App app) {
         matchedApps.remove(i);
+        matchedAppsSize--;
         updateView();
         allApps.remove(app); // slow, but infrequent
+        allAppsSize--;
         allAppsHashes.remove(app.uniqueName);
     }
 
@@ -172,7 +178,7 @@ public class Apps extends BaseAdapter {
                 add(ri, uniqueName);
                 changes = true;
             }
-            for (int i = 0; i < allApps.size() && missingAppsHashes.size() > 0; i++) {
+            for (int i = 0; i < allAppsSize && missingAppsHashes.size() > 0; i++) {
                 String uniqueName = allApps.get(i).uniqueName;
                 if (!missingAppsHashes.contains(uniqueName)) continue;
                 // missing (uninstalled) app!
@@ -207,12 +213,12 @@ public class Apps extends BaseAdapter {
     }
 
     public App get(int i){
-        return matchedApps.get(i);
+        return matchedApps.get(matchedAppsSize - i - 1);
     }
 
     public void launch(int i){
 //        Log.d("webb", String.valueOf(i) + " " + app.lcLabel);
-        App app = matchedApps.get(i);
+        App app = get(i);
         boolean launched = app.launch();
         needsSort = true;
         saveLaunchData(app);
@@ -227,15 +233,11 @@ public class Apps extends BaseAdapter {
     }
 
     public void info(int i) {
-        matchedApps.get(i).info();
+        get(i).info();
     }
 
     public void launchBestGuess(){
-        launch(size()-1);
-    }
-
-    public int size(){
-        return matchedApps.size();
+        launch(0);
     }
 
     public void resetQuery(){
@@ -251,6 +253,7 @@ public class Apps extends BaseAdapter {
 
     public void resetMatchedApps(){
         matchedApps = allApps;
+        matchedAppsSize = allAppsSize;
     }
 
     public void updateView(){
@@ -263,7 +266,7 @@ public class Apps extends BaseAdapter {
         private double discountFactor = 0.1;
         @Override
         public int compare(App x, App y) {            
-            if(x.nLaunches ==0 || y.nLaunches ==0) return x.lastLaunch - y.lastLaunch;
+            if(x.nLaunches ==0 || y.nLaunches ==0) return y.lastLaunch - x.lastLaunch;
             // ...so safe to assume both have >0 nLaunches
             int xInterval = now - x.lastLaunch;
             int yInterval = now - y.lastLaunch;
@@ -291,9 +294,9 @@ public class Apps extends BaseAdapter {
 //                    String.valueOf(yValue),
 //                    String.valueOf(yValueDiscounted),
 //            }));
-            if (xValueDiscounted > yValueDiscounted) return 1;
-            if (xValueDiscounted < yValueDiscounted) return -1;
-            return x.lastLaunch - y.lastLaunch; // rare
+            if (xValueDiscounted > yValueDiscounted) return -1;
+            if (xValueDiscounted < yValueDiscounted) return 1;
+            return y.lastLaunch - x.lastLaunch; // rare
         }
     }
 
@@ -336,13 +339,12 @@ public class Apps extends BaseAdapter {
 
     public void filter(String query){
         // find the array indices of apps with lowercase labels matching query
-        int nMatches=0,
-                nPrevMatches=size(),
-                matchIndices[] = new int[nPrevMatches];
+        int nMatches=0, nPrevMatches=matchedAppsSize;
+        ArrayList<App> newMatchedApps = new ArrayList<App>(nMatches);
         for(int i=0; i<nPrevMatches; i++){
-            App app = get(i);
+            App app = matchedApps.get(i);
             if(app.matches(query)){
-                matchIndices[nMatches] = i;
+                newMatchedApps.add(app);
                 nMatches++;
             }
         }
@@ -355,13 +357,9 @@ public class Apps extends BaseAdapter {
             resetQuery();
             return;
         }
-        // use the matched app indices to create the new matched app data structure
-        ArrayList<App> newMatchedApps = new ArrayList<App>(nMatches);
-        for(int i=0; i < nMatches; i++){
-            newMatchedApps.add(matchedApps.get(matchIndices[i]));
-        }
-        // replace the old matched app data with the new
+        // otherwise, replace the old matched app data with the new
         matchedApps = newMatchedApps;
+        matchedAppsSize = nMatches;
         // if there's one match, launch it
         if(nMatches==1) {
 //            Log.d("webb.appsearch", "1 match");
@@ -387,8 +385,8 @@ public class Apps extends BaseAdapter {
                 char c = query.charAt(i);
                 char c1 = l1.charAt(i);
                 char c2 = l2.charAt(i);
-                if(c == c1 && c != c2) return 1;
-                if(c == c2 && c != c1) return -1;
+                if(c == c1 && c != c2) return -1;
+                if(c == c2 && c != c1) return 1;
             }
             return 0;
         }
